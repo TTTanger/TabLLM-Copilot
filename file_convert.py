@@ -102,7 +102,6 @@ def excel_to_df(file):
 def img_to_df(images_folder, current_file):
     current_file_name = os.path.basename(current_file)
     paddleocr = PaddleOCR(lang='ch', use_gpu=False, use_angle_cls=True)
-
     images = [os.path.join(images_folder, img) for img in os.listdir(images_folder) if
               img.endswith('.png') or img.endswith('.jpg')]
 
@@ -127,13 +126,10 @@ def save_result_as_json(result, file_img, current_file_name):
     for item in result:
         for box in item:
             coordinates = box[0]
-            avg_x = (coordinates[0][0] + coordinates[1][0] + coordinates[2][0] + coordinates[3][0]) / 4
-            avg_y = (coordinates[0][1] + coordinates[1][1] + coordinates[2][1] + coordinates[3][1]) / 4
-            avg_coordinates = [avg_x, avg_y]
             text = box[1][0]
-            result_dict[f"{file_img}"][text] = avg_coordinates
+            result_dict[f"{file_img}"][text] = coordinates
 
-    # 创建 "result" 文件夹（如果不存在）
+    # Create the "result" folder if it doesn't exist
     result_folder = 'result'
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
@@ -148,27 +144,32 @@ def save_result_as_json(result, file_img, current_file_name):
 def get_data_from_json():
     df_list = []
     result_folder = 'result'
-    # 遍历result文件夹下的所有JSON文件
+    # Traverse all JSON files in the "result" folder
     for filename in os.listdir(result_folder):
         if filename.endswith('.json'):
             json_file_path = os.path.join(result_folder, filename)
 
-            # 从JSON文件中逐行读取数据
+            # Read data line by line from the JSON file
             with open(json_file_path, 'r', encoding='utf-8') as file:
                 for line in file:
                     json_data = json.loads(line)
 
-                    # 提取文件名和文本坐标数据
+                    # Extract the file name and text coordinates data
                     file_img = list(json_data.keys())[0]
                     text_coordinates = json_data[file_img]
 
-                    # 将数据填充到DataFrame中
+                    # Fill the data into a DataFrame
                     for text, coordinates in text_coordinates.items():
-                        avg_x, avg_y = coordinates
                         df_list.append(pd.DataFrame({
                             "Text": [text],
-                            "Average_X": [avg_x],
-                            "Average_Y": [avg_y]
+                            "Point1_X": [coordinates[0][0]],
+                            "Point1_Y": [coordinates[0][1]],
+                            "Point2_X": [coordinates[1][0]],
+                            "Point2_Y": [coordinates[1][1]],
+                            "Point3_X": [coordinates[2][0]],
+                            "Point3_Y": [coordinates[2][1]],
+                            "Point4_X": [coordinates[3][0]],
+                            "Point4_Y": [coordinates[3][1]],
                         }))
 
     df = pd.concat(df_list, ignore_index=True)
